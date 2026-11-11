@@ -44,7 +44,7 @@
     { "action": "shell", "resource": "gh *", "effect": "allow" },
     { "action": "shell", "resource": "catalina *", "effect": "allow" },
     { "action": "shell", "resource": "startup *", "effect": "allow" },
-    { "action": "shell", "resource": "shutdown *", "effect": "allow" },
+    { "action": "shell", "resource": "shutdown *", "effect": "ask" },
     { "action": "shell", "resource": "mkdir *", "effect": "allow" },
     { "action": "shell", "resource": "copy *", "effect": "allow" },
     { "action": "shell", "resource": "move *", "effect": "allow" },
