@@ -1,0 +1,72 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permissions": [
+    // File access inside the project: allow without prompting.
+    { "action": "read", "resource": "*", "effect": "allow" },
+    { "action": "edit", "resource": "*", "effect": "allow" },
+    { "action": "glob", "resource": "*", "effect": "allow" },
+    { "action": "grep", "resource": "*", "effect": "allow" },
+
+    // Network and agent capabilities.
+    { "action": "webfetch", "resource": "*", "effect": "allow" },
+    { "action": "websearch", "resource": "*", "effect": "allow" },
+    { "action": "subagent", "resource": "*", "effect": "allow" },
+    { "action": "skill", "resource": "*", "effect": "allow" },
+    { "action": "question", "resource": "*", "effect": "allow" },
+    { "action": "execute", "resource": "*", "effect": "allow" },
+
+    // Secret files: never read or edit, even though read/edit are broadly allowed.
+    // Example files are safe to read and edit.
+    { "action": "read", "resource": "*.env", "effect": "deny" },
+    { "action": "read", "resource": "*.env.*", "effect": "deny" },
+    { "action": "read", "resource": "*.env.example", "effect": "allow" },
+    { "action": "edit", "resource": "*.env", "effect": "deny" },
+    { "action": "edit", "resource": "*.env.*", "effect": "deny" },
+    { "action": "edit", "resource": "*.env.example", "effect": "allow" },
+
+    // External directories: allow the projects workspace, ask everywhere else.
+    { "action": "external_directory", "resource": "*", "effect": "ask" },
+    { "action": "external_directory", "resource": "C:/PROJECTS/*", "effect": "allow" },
+
+    // Development toolchain.
+    { "action": "shell", "resource": "git *", "effect": "allow" },
+    { "action": "shell", "resource": "npm *", "effect": "allow" },
+    { "action": "shell", "resource": "npx *", "effect": "allow" },
+    { "action": "shell", "resource": "node *", "effect": "allow" },
+    { "action": "shell", "resource": "mvn *", "effect": "allow" },
+    { "action": "shell", "resource": "mvnw *", "effect": "allow" },
+    { "action": "shell", "resource": "java *", "effect": "allow" },
+    { "action": "shell", "resource": "javac *", "effect": "allow" },
+    { "action": "shell", "resource": "jar *", "effect": "allow" },
+    { "action": "shell", "resource": "mysql *", "effect": "allow" },
+    { "action": "shell", "resource": "mysqldump *", "effect": "allow" },
+    { "action": "shell", "resource": "curl *", "effect": "allow" },
+    { "action": "shell", "resource": "gh *", "effect": "allow" },
+    { "action": "shell", "resource": "catalina *", "effect": "allow" },
+    { "action": "shell", "resource": "startup *", "effect": "allow" },
+    { "action": "shell", "resource": "shutdown *", "effect": "allow" },
+    { "action": "shell", "resource": "mkdir *", "effect": "allow" },
+    { "action": "shell", "resource": "copy *", "effect": "allow" },
+    { "action": "shell", "resource": "move *", "effect": "allow" },
+    { "action": "shell", "resource": "ren *", "effect": "allow" },
+    { "action": "shell", "resource": "where *", "effect": "allow" },
+    { "action": "shell", "resource": "which *", "effect": "allow" },
+    { "action": "shell", "resource": "Test-Path *", "effect": "allow" },
+    { "action": "shell", "resource": "Get-Content *", "effect": "allow" },
+    { "action": "shell", "resource": "Select-String *", "effect": "allow" },
+    { "action": "shell", "resource": "Get-ChildItem *", "effect": "allow" },
+    { "action": "shell", "resource": "Get-Item *", "effect": "allow" },
+
+    // Destructive or irreversible commands: keep asking.
+    { "action": "shell", "resource": "rm *", "effect": "ask" },
+    { "action": "shell", "resource": "rmdir *", "effect": "ask" },
+    { "action": "shell", "resource": "Remove-Item *", "effect": "ask" },
+    { "action": "shell", "resource": "del *", "effect": "ask" },
+    { "action": "shell", "resource": "erase *", "effect": "ask" },
+    { "action": "shell", "resource": "git reset --hard *", "effect": "deny" },
+    { "action": "shell", "resource": "git clean *", "effect": "deny" },
+    { "action": "shell", "resource": "git branch -D *", "effect": "deny" },
+    { "action": "shell", "resource": "git push *--force*", "effect": "deny" },
+    { "action": "shell", "resource": "git push *--delete*", "effect": "deny" }
+  ]
+}
