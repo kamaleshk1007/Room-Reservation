@@ -25,7 +25,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, String
             value = """
                     SELECT COUNT(r) > 0
                     FROM Reservation r
-                    WHERE r.room = :roomId
+                    WHERE r.room.id = :roomId
                       AND r.status IN ('CONFIRMED', 'PENDING')
                       AND r.id != :excludeId
                       AND r.startTime < :endTime

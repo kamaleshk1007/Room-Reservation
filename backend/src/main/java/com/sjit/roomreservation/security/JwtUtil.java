@@ -3,20 +3,17 @@ package com.sjit.roomreservation.security;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
-import java.nio.charset.StandardCharsets;
+import javax.crypto.SecretKey;
 import java.util.Date;
 
-/**
- * JWT utility using signed HS256 tokens via jjwt library (0.9.1).
- * Tokens do NOT include "Bearer " prefix - they are pure JWT strings.
- * Designed for interim auth until portal-cookie SSO is implemented.
- */
 @Component
 public class JwtUtil {
 
@@ -28,6 +25,17 @@ public class JwtUtil {
 
     @Value("${app.jwt.refresh-token-expiration-days}")
     private long jwtRefreshExpirationDays;
+
+    private final SecretKey key;
+
+    public JwtUtil() {
+        // jjwt 0.12.x: requires 32+ bytes (256 bits) base64-encoded secret
+        byte[] secretBytes = Decoders.BASE64.decode(jwtSecret);
+        if (secretBytes.length < 32) {
+            throw new IllegalArgumentException("JWT secret must be at least 32 bytes (256 bits) when base64-decoded");
+        }
+        this.key = Keys.hmacShaKeyFor(secretBytes);
+    }
 
     /** Get the raw JWT token (without "Bearer " prefix) from the Authorization header */
     public String getRawToken(HttpServletRequest request) {
@@ -41,11 +49,11 @@ public class JwtUtil {
     /** Extract the username (portal_staff_id) from the JWT token */
     public String extractUsername(String token) {
         try {
-            return Jwts
-                    .parser()
-                    .setSigningKey(jwtSecret.getBytes(StandardCharsets.UTF_8))
-                    .parseClaimsJws(token)
-                    .getBody()
+            return Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
                     .getSubject();
         } catch (Exception e) {
             return null;
@@ -55,11 +63,11 @@ public class JwtUtil {
     /** Check if the token is expired */
     public boolean isTokenExpired(String token) {
         try {
-            return Jwts
-                    .parser()
-                    .setSigningKey(jwtSecret.getBytes(StandardCharsets.UTF_8))
-                    .parseClaimsJws(token)
-                    .getBody()
+            return Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
                     .getExpiration()
                     .before(new Date());
         } catch (Exception e) {
@@ -67,25 +75,43 @@ public class JwtUtil {
         }
     }
 
-    /** Generate an access token (signed HS256 via jjwt, without "Bearer " prefix) */
+    /** Extract expiration date from the JWT token */
+    private Date extractExpiration(String token) {
+        try {
+            return Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .getExpiration();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Validate token against UserDetails */
+    public boolean validateToken(String token, UserDetails userDetails) {
+        final String username = extractUsername(token);
+        return (username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    }
+
+    /** Generate an access token (signed HS256 via jjwt 0.12.x, without "Bearer " prefix) */
     public String generateAccessToken(String username) {
-        return Jwts
-                .builder()
-                .setSubject(username)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtAccessExpirationMinutes * 60 * 1000))
-                .signWith(SignatureAlgorithm.HS256, jwtSecret.getBytes(StandardCharsets.UTF_8))
+        return Jwts.builder()
+                .subject(username)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtAccessExpirationMinutes * 60 * 1000))
+                .signWith(SignatureAlgorithm.HS256, key)
                 .compact();
     }
 
-    /** Generate a refresh token (signed HS256 via jjwt, without "Bearer " prefix) */
+    /** Generate a refresh token (signed HS256 via jjwt 0.12.x, without "Bearer " prefix) */
     public String generateRefreshToken(String username) {
-        return Jwts
-                .builder()
-                .setSubject(username)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationDays * 24 * 60 * 60 * 1000))
-                .signWith(SignatureAlgorithm.HS256, jwtSecret.getBytes(StandardCharsets.UTF_8))
+        return Jwts.builder()
+                .subject(username)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationDays * 24 * 60 * 60 * 1000))
+                .signWith(SignatureAlgorithm.HS256, key)
                 .compact();
     }
 
@@ -110,11 +136,5 @@ public class JwtUtil {
     public void clearRefreshTokenCookie(HttpServletResponse response) {
         response.setHeader("Set-Cookie",
                 "refresh_token=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0");
-    }
-
-    /** Validate token against UserDetails */
-    public boolean validateToken(String token, UserDetails userDetails) {
-        String username = extractUsername(token);
-        return (username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 }
