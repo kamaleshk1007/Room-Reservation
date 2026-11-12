@@ -17,11 +17,11 @@ public class Reservation {
     @Column(name = "id", columnDefinition = "CHAR(36)")
     private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "requested_by", nullable = false)
     private User requestedBy;
 
