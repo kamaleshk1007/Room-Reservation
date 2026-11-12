@@ -8,12 +8,12 @@
 -- --------------------------------------------------------
 -- Index on approved_by for fast HOD query filtering
 -- --------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_res_approved_by ON reservations (approved_by);
+CREATE INDEX idx_res_approved_by ON reservations (approved_by);
 
 -- Index on approved_at for fast HOD query filtering
 -- --------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_res_approved_at ON reservations (approved_at);
+CREATE INDEX idx_res_approved_at ON reservations (approved_at);
 
 -- Index on status + approval fields for common HOD queries
 -- --------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_res_status_approved ON reservations (status, approved_by, approved_at);
+CREATE INDEX idx_res_status_approved ON reservations (status, approved_by, approved_at);

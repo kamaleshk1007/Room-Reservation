@@ -10,7 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,7 +26,7 @@ import java.time.LocalDateTime;
  * Refresh and logout use refresh tokens stored in DB.
  * Portal-cookie SSO integration pending (cookie name/domain unknown).
  */
-@Controller
+@RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
@@ -87,7 +87,7 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = jwtUtil.extractToken(request);
+        String refreshToken = jwtUtil.getRawToken(request);
         if (refreshToken == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new AuthError("Refresh token required"));
@@ -122,7 +122,7 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = jwtUtil.extractToken(request);
+        String refreshToken = jwtUtil.getRawToken(request);
         if (refreshToken != null) {
             refreshTokenRepository.findByTokenAndValid(refreshToken)
                     .ifPresent(rt -> {

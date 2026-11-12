@@ -8,4 +8,4 @@
 -- --------------------------------------------------------
 -- Index for fast overlap detection (covering index)
 -- --------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_res_room_time_ovl ON reservations (room_id, start_time, end_time, status);
+CREATE INDEX idx_res_room_time_ovl ON reservations (room_id, start_time, end_time, status);

@@ -15,6 +15,9 @@ public interface UserRepository extends JpaRepository<User, String> {
     /** Find user by portal staff ID (for cookie-based SSO mapping). */
     Optional<User> findByPortalStaffId(String portalStaffId);
 
+    /** Find user by email. */
+    Optional<User> findByEmail(String email);
+
     /** Find active users. */
     // Optional<User> findByIsActiveTrue();
 

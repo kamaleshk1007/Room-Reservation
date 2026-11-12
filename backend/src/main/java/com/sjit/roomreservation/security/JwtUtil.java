@@ -1,21 +1,21 @@
 package com.sjit.roomreservation.security;
 
-import org.springframework.beans.factory.annotation.Value;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.function.Function;
-import java.util.Base64;
 
 /**
- * Simple JWT utility using base64-encoded HMAC secret.
- * Designed for interim JWT auth until portal-cookie SSO is implemented.
- * Uses only core Java classes.
+ * JWT utility using signed HS256 tokens via jjwt library (0.9.1).
+ * Tokens do NOT include "Bearer " prefix - they are pure JWT strings.
+ * Designed for interim auth until portal-cookie SSO is implemented.
  */
 @Component
 public class JwtUtil {
@@ -29,14 +29,8 @@ public class JwtUtil {
     @Value("${app.jwt.refresh-token-expiration-days}")
     private long jwtRefreshExpirationDays;
 
-    private final String secret;
-
-    public JwtUtil() {
-        this.secret = jwtSecret;
-    }
-
-    /** Extract the JWT token from the Authorization header */
-    public String extractToken(HttpServletRequest request) {
+    /** Get the raw JWT token (without "Bearer " prefix) from the Authorization header */
+    public String getRawToken(HttpServletRequest request) {
         String bearer = request.getHeader("Authorization");
         if (bearer != null && bearer.startsWith("Bearer ")) {
             return bearer.substring(7);
@@ -44,95 +38,62 @@ public class JwtUtil {
         return null;
     }
 
-    /** Extract the username (portal_staff_id) from the token */
+    /** Extract the username (portal_staff_id) from the JWT token */
     public String extractUsername(String token) {
-        return extractClaim(token, this::getSubject);
-    }
-
-    /** Extract a specific claim from the token */
-    public <T> T extractClaim(String token, Function<String, T> claimsResolver) {
         try {
-            String[] parts = token.split("\\.");
-            if (parts.length < 2) return null;
-            String base64Payload = parts[1];
-            while (base64Payload.length() % 4 != 0) {
-                base64Payload += "=";
-            }
-            String json = new String(Base64.getUrlDecoder().decode(base64Payload), StandardCharsets.UTF_8);
-            return claimsResolver.apply(json);
+            return Jwts
+                    .parser()
+                    .setSigningKey(jwtSecret.getBytes(StandardCharsets.UTF_8))
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getSubject();
         } catch (Exception e) {
             return null;
         }
     }
 
-    /** Get the subject (portal_staff_id) from token payload JSON */
-    private String getSubject(String json) {
-        String key = "\"sub\"";
-        int idx = json.indexOf(key);
-        if (idx < 0) return null;
-        int start = idx + key.length() + 2;
-        int end = json.indexOf(",", start);
-        if (end < 0) end = json.indexOf("}", start);
-        if (end < 0) return null;
-        return json.substring(start, end).replace("\"", "").trim();
-    }
-
     /** Check if the token is expired */
     public boolean isTokenExpired(String token) {
-        String expClaim = extractClaim(token, json -> {
-            String key = "\"exp\"";
-            int idx = json.indexOf(key);
-            if (idx < 0) return null;
-            int start = idx + key.length() + 2;
-            int end = json.indexOf(",", start);
-            if (end < 0) end = json.indexOf("}", start);
-            if (end < 0) return null;
-            return json.substring(start, end).trim();
-        });
-        if (expClaim == null) return false;
         try {
-            long exp = Long.parseLong(expClaim);
-            return System.currentTimeMillis() / 1000 > exp;
-        } catch (NumberFormatException e) {
-            return false;
+            return Jwts
+                    .parser()
+                    .setSigningKey(jwtSecret.getBytes(StandardCharsets.UTF_8))
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getExpiration()
+                    .before(new Date());
+        } catch (Exception e) {
+            return true;
         }
     }
 
-    /** Generate an access token (simple base64-encoded JWT) */
+    /** Generate an access token (signed HS256 via jjwt, without "Bearer " prefix) */
     public String generateAccessToken(String username) {
-        long issuedAt = System.currentTimeMillis();
-        long expiration = issuedAt + jwtAccessExpirationMinutes * 60 * 1000L;
-        String payload = String.format(
-                "{\"sub\":\"%s\",\"iat\":%d,\"exp\":%d}",
-                username, issuedAt / 1000, expiration / 1000
-        );
-        String base64Payload = Base64.getUrlEncoder().encodeToString(payload.getBytes(StandardCharsets.UTF_8));
-        return "Bearer " + base64Payload + ".";
+        return Jwts
+                .builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtAccessExpirationMinutes * 60 * 1000))
+                .signWith(SignatureAlgorithm.HS256, jwtSecret.getBytes(StandardCharsets.UTF_8))
+                .compact();
     }
 
-    /** Generate a refresh token */
+    /** Generate a refresh token (signed HS256 via jjwt, without "Bearer " prefix) */
     public String generateRefreshToken(String username) {
-        long issuedAt = System.currentTimeMillis();
-        long expiration = issuedAt + jwtRefreshExpirationDays * 24 * 60 * 60 * 1000L;
-        String payload = String.format(
-                "{\"sub\":\"%s\",\"iat\":%d,\"exp\":%d}",
-                username, issuedAt / 1000, expiration / 1000
-        );
-        String base64Payload = Base64.getUrlEncoder().encodeToString(payload.getBytes(StandardCharsets.UTF_8));
-        return "Bearer " + base64Payload + ".";
+        return Jwts
+                .builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationDays * 24 * 60 * 60 * 1000))
+                .signWith(SignatureAlgorithm.HS256, jwtSecret.getBytes(StandardCharsets.UTF_8))
+                .compact();
     }
 
-    /** Validate token against UserDetails */
-    public boolean validateToken(String token, UserDetails userDetails) {
-        String username = extractUsername(token);
-        return (username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token));
-    }
-
-    /** Build authentication from JWT */
+    /** Build authentication from JWT token */
     public Authentication getAuthToken(String token) {
         String username = extractUsername(token);
         if (username != null) {
-            return new UsernamePasswordAuthenticationToken(username, null, null);
+            return new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(username, null, null);
         }
         throw new RuntimeException("Invalid JWT token");
     }
@@ -149,5 +110,11 @@ public class JwtUtil {
     public void clearRefreshTokenCookie(HttpServletResponse response) {
         response.setHeader("Set-Cookie",
                 "refresh_token=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0");
+    }
+
+    /** Validate token against UserDetails */
+    public boolean validateToken(String token, UserDetails userDetails) {
+        String username = extractUsername(token);
+        return (username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 }
