@@ -21,7 +21,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, String
     /** Find pending reservations for a room. */
     // Optional<List<Reservation>> findByRoomIdAndStatus(String roomId, String status);
 
-    /** Check if a time range overlaps any confirmed/pending reservation for the given room. */
+    /** Check if a time range overlaps any confirmed/pending reservation for the given room (create time). */
     @Query(
             value = """
                     SELECT COUNT(r) > 0
@@ -37,6 +37,23 @@ public interface ReservationRepository extends JpaRepository<Reservation, String
                                 @Param("excludeId") String excludeId,
                                 @Param("startTime") LocalDateTime startTime,
                                 @Param("endTime") LocalDateTime endTime);
+
+    /** Check if a time range overlaps any CONFIRMED reservation for the given room (approve time). */
+    @Query(
+            value = """
+                    SELECT COUNT(r) > 0
+                    FROM Reservation r
+                    WHERE r.room.id = :roomId
+                      AND r.status = 'CONFIRMED'
+                      AND r.id != :excludeId
+                      AND r.startTime < :endTime
+                      AND r.endTime > :startTime
+                    """
+    )
+    boolean existsOverlapConfirmedByRoom(@Param("roomId") String roomId,
+                                         @Param("excludeId") String excludeId,
+                                         @Param("startTime") LocalDateTime startTime,
+                                         @Param("endTime") LocalDateTime endTime);
 
     /** Find reservations with optional filters. */
     @Query(

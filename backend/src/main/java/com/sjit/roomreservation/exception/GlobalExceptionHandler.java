@@ -6,6 +6,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,6 +57,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Map.of("error", "Access denied: insufficient permissions"));
     }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        Throwable cause = ex.getCause();
+        while (cause != null) {
+            if (cause instanceof DateTimeParseException) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Invalid date/time format. Use ISO-8601 (e.g., 2026-11-15T10:00:00)"));
+            }
+            cause = cause.getCause();
+        }
+        return ResponseEntity.badRequest()
+                .body(Map.of("error", "Malformed request body: " + ex.getMostSpecificCause().getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, String>> handleDataIntegrity(org.springframework.dao.DataIntegrityViolationException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "Data integrity violation: " + ex.getMostSpecificCause().getMessage()));
+    }
+
+    @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneric(Exception ex) {
         if (ex.getMessage() != null && ex.getMessage().contains("No row with the given identifier")) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)

@@ -153,7 +153,7 @@ Remote: https://github.com/kamaleshk1007/Room-Reservation.git
 1. **Create MySQL database and user:**
    ```sql
    CREATE DATABASE IF NOT EXISTS room_reservation;
-   CREATE USER 'room'@'localhost' IDENTIFIED BY 'rootpass123';
+   CREATE USER 'room'@'localhost' IDENTIFIED BY '<your-db-password>';
    GRANT ALL PRIVILEGES ON room_reservation.* TO 'room'@'localhost';
    FLUSH PRIVILEGES;
    ```
@@ -162,9 +162,9 @@ Remote: https://github.com/kamaleshk1007/Room-Reservation.git
    ```env
    SERVER_PORT=8080
    DB_URL=jdbc:mysql://127.0.0.1:3306/room_reservation?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-   DB_USERNAME=root_user
-   DB_PASSWORD=root_user_password
-   JWT_SECRET=1E8a9zvzHVoEDeg2XNZbi6M3UbktTQdzeJn9m9ReXxo=
+   DB_USERNAME=<your-db-username>
+   DB_PASSWORD=<your-db-password>
+   JWT_SECRET=<your-base64-secret>
    JWT_ACCESS_EXPIRATION_MINUTES=30
    JWT_REFRESH_EXPIRATION_DAYS=7
    CORS_ALLOWED_ORIGINS=http://localhost:5173
@@ -520,10 +520,10 @@ ReservationController.createReservation()
 - **Cause:** System-level environment variables `SPRING_DATASOURCE_USERNAME=nfc_app` and `SPRING_DATASOURCE_PASSWORD=...` override your `.env` file.
 - **Fix:** Set correct values in current shell session:
   ```powershell
-  $env:DB_PASSWORD = "rootpass123"
-  $env:DB_USERNAME = "root"
-  $env:SPRING_DATASOURCE_PASSWORD = "rootpass123"
-  $env:SPRING_DATASOURCE_USERNAME = "root"
+  $env:DB_PASSWORD = "<your-db-password>"
+  $env:DB_USERNAME = "<your-db-username>"
+  $env:SPRING_DATASOURCE_PASSWORD = "<your-db-password>"
+  $env:SPRING_DATASOURCE_USERNAME = "<your-db-username>"
   ```
 
 ### "Migration checksum mismatch for migration version 3"
@@ -539,7 +539,7 @@ ReservationController.createReservation()
 
 ### App won't start (MySQL connection)
 - Ensure MySQL is running: `Get-Service MySQL*`
-- Ensure user exists: `CREATE USER 'room'@'localhost' IDENTIFIED BY 'rootpass123';`
+- Ensure user exists: `CREATE USER 'room'@'localhost' IDENTIFIED BY '<your-db-password>';`
 - Ensure database exists: `CREATE DATABASE room_reservation;`
 - Grant privileges: `GRANT ALL PRIVILEGES ON room_reservation.* TO 'room'@'localhost';`
 
