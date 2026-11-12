@@ -12,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.sjit.roomreservation.dto.UserSummary;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import com.sjit.roomreservation.entity.RefreshToken;
@@ -136,7 +138,20 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<?> me() {
-        return ResponseEntity.ok(new AuthSuccess("Authenticated"));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthError("Not authenticated"));
+        }
+        String portalStaffId = authentication.getName();
+        User user = userRepository.findByPortalStaffId(portalStaffId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return ResponseEntity.ok(new UserSummary(
+                user.getId(),
+                user.getPortalStaffId(),
+                user.getName(),
+                user.getRole()
+        ));
     }
 
     public static class LoginRequest {
