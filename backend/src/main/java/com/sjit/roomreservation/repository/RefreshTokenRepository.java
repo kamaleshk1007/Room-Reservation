@@ -17,7 +17,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Stri
                     SELECT rt FROM RefreshToken rt
                     WHERE rt.token = :token
                       AND rt.isRevoked = FALSE
-                      AND rt.expiresAt > NOW(6)
+                      AND rt.expiresAt > CURRENT_TIMESTAMP
                     """
     )
     Optional<RefreshToken> findByTokenAndValid(@Param("token") String token);

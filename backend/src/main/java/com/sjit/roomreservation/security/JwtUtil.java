@@ -1,8 +1,6 @@
 package com.sjit.roomreservation.security;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,18 +15,18 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    @Value("${app.jwt.secret}")
-    private String jwtSecret;
-
-    @Value("${app.jwt.access-token-expiration-minutes}")
-    private long jwtAccessExpirationMinutes;
-
-    @Value("${app.jwt.refresh-token-expiration-days}")
-    private long jwtRefreshExpirationDays;
-
+    private final String jwtSecret;
+    private final long jwtAccessExpirationMinutes;
+    private final long jwtRefreshExpirationDays;
     private final SecretKey key;
 
-    public JwtUtil() {
+    public JwtUtil(@Value("${app.jwt.secret}") String jwtSecret,
+                   @Value("${app.jwt.access-token-expiration-minutes}") long jwtAccessExpirationMinutes,
+                   @Value("${app.jwt.refresh-token-expiration-days}") long jwtRefreshExpirationDays) {
+        this.jwtSecret = jwtSecret;
+        this.jwtAccessExpirationMinutes = jwtAccessExpirationMinutes;
+        this.jwtRefreshExpirationDays = jwtRefreshExpirationDays;
+
         // jjwt 0.12.x: requires 32+ bytes (256 bits) base64-encoded secret
         byte[] secretBytes = Decoders.BASE64.decode(jwtSecret);
         if (secretBytes.length < 32) {
@@ -75,20 +73,6 @@ public class JwtUtil {
         }
     }
 
-    /** Extract expiration date from the JWT token */
-    private Date extractExpiration(String token) {
-        try {
-            return Jwts.parser()
-                    .verifyWith(key)
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload()
-                    .getExpiration();
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     /** Validate token against UserDetails */
     public boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
@@ -101,7 +85,7 @@ public class JwtUtil {
                 .subject(username)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtAccessExpirationMinutes * 60 * 1000))
-                .signWith(SignatureAlgorithm.HS256, key)
+                .signWith(key)
                 .compact();
     }
 
@@ -111,7 +95,7 @@ public class JwtUtil {
                 .subject(username)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationDays * 24 * 60 * 60 * 1000))
-                .signWith(SignatureAlgorithm.HS256, key)
+                .signWith(key)
                 .compact();
     }
 
