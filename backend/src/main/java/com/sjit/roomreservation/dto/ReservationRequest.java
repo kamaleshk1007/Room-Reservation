@@ -5,15 +5,12 @@ import java.time.LocalDateTime;
 
 /**
  * Request DTO for creating a reservation.
- * Uses validation annotations to enforce required fields.
+ * The requesting user is taken from the authenticated JWT principal, not from the request body.
  */
 public class ReservationRequest {
 
-    @NotNull(message = "room is required")
+    @NotNull(message = "roomId is required")
     private String roomId;
-
-    @NotNull(message = "requestedBy is required")
-    private String requestedById;
 
     @NotNull(message = "startTime is required")
     private LocalDateTime startTime;
@@ -25,9 +22,6 @@ public class ReservationRequest {
 
     public String getRoomId() { return roomId; }
     public void setRoomId(String roomId) { this.roomId = roomId; }
-
-    public String getRequestedById() { return requestedById; }
-    public void setRequestedById(String requestedById) { this.requestedById = requestedById; }
 
     public LocalDateTime getStartTime() { return startTime; }
     public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }

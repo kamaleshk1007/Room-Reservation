@@ -51,7 +51,11 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "Access denied: insufficient permissions"));
+    }
     public ResponseEntity<Map<String, String>> handleGeneric(Exception ex) {
         if (ex.getMessage() != null && ex.getMessage().contains("No row with the given identifier")) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)

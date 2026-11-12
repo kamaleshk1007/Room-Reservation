@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -36,4 +37,23 @@ public interface ReservationRepository extends JpaRepository<Reservation, String
                                 @Param("excludeId") String excludeId,
                                 @Param("startTime") LocalDateTime startTime,
                                 @Param("endTime") LocalDateTime endTime);
+
+    /** Find reservations with optional filters. */
+    @Query(
+            value = """
+                    SELECT r FROM Reservation r
+                    WHERE (:status IS NULL OR r.status = :status)
+                      AND (:roomId IS NULL OR r.room.id = :roomId)
+                      AND (:from IS NULL OR r.startTime >= :from)
+                      AND (:to IS NULL OR r.endTime <= :to)
+                    ORDER BY r.startTime DESC
+                    """
+    )
+    List<Reservation> findWithFilters(@Param("status") String status,
+                                      @Param("roomId") String roomId,
+                                      @Param("from") LocalDateTime from,
+                                      @Param("to") LocalDateTime to);
+
+    /** Find reservations by requestedBy user. */
+    List<Reservation> findByRequestedBy_Id(String userId);
 }
