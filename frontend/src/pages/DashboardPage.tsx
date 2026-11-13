@@ -38,7 +38,10 @@ export function DashboardPage() {
             Rooms
           </a>
           <a href="/reservations" className="py-3 text-sm font-medium text-gray-600 hover:text-gray-900">
-            Reservations
+            My Reservations
+          </a>
+          <a href="/reservations/new" className="py-3 text-sm font-medium text-gray-600 hover:text-gray-900">
+            New Reservation
           </a>
           {user.role === 'HOD' && (
             <a href="/approvals" className="py-3 text-sm font-medium text-gray-600 hover:text-gray-900">

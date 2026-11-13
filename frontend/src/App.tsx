@@ -4,6 +4,9 @@ import { AuthProvider } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { RoomsPage } from './pages/RoomsPage';
+import { NewReservationPage } from './pages/NewReservationPage';
+import { MyReservationsPage } from './pages/MyReservationsPage';
 
 export default function App() {
   return (
@@ -13,6 +16,9 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/rooms" element={<RoomsPage />} />
+            <Route path="/reservations/new" element={<NewReservationPage />} />
+            <Route path="/reservations" element={<MyReservationsPage />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
