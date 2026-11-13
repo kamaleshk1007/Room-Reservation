@@ -1,32 +1,58 @@
-# React + TypeScript + Vite
+# Room Reserve Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + TypeScript + Vite single-page app for the Room Reserve reservation system.
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 20+
+- pnpm 9+
+- The Spring Boot backend running on the same machine (default `http://localhost:8080`)
 
-## React Compiler
+## Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+pnpm install
+cp .env.example .env
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+`.env` contains a single value:
+
+```
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+The backend must be reachable at `VITE_API_BASE_URL`. For local development the Vite dev
+server runs on `http://localhost:5173`, which must be listed in the backend's
+`CORS_ALLOWED_ORIGINS`.
+
+## Scripts
+
+| Command           | Description                          |
+| ----------------- | ------------------------------------ |
+| `pnpm dev`        | Start the Vite dev server (HMR)      |
+| `pnpm build`      | Type-check (`tsc -b`) and production build |
+| `pnpm preview`   | Serve the production build           |
+| `pnpm lint`       | Run oxlint                           |
+
+## Folder structure
+
+```
+src/
+  api/         # Typed API client (JWT attach, refresh + retry, typed endpoints)
+  auth/        # AuthContext, useAuth, ProtectedRoute
+  components/  # ErrorBoundary, Layout
+  hooks/       # useDialog (focus trap, Escape to close)
+  pages/       # Login, Dashboard, Rooms, NewReservation, MyReservations, Approvals, NotFound
+  App.tsx      # Route definitions
+  main.tsx
+```
+
+## Notes
+
+- Auth tokens (access + refresh) are kept in `localStorage`; the access token is sent
+  as a Bearer token and the refresh token is sent as a Bearer token to `/api/auth/refresh`.
+- On an expired access token the client refreshes once and retries the original request.
+- Reservations use `datetime-local` inputs; the local wall time is sent without timezone
+  conversion so the value matches what the user picked.
+
+No secrets belong in this repository. Only `VITE_API_BASE_URL` is required in `.env`.

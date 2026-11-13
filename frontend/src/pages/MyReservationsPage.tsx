@@ -1,6 +1,7 @@
 // src/pages/MyReservationsPage.tsx
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/useAuth';
+import { useDialog } from '../hooks/useDialog';
 import { getReservations, cancelReservation, type ReservationResponse } from '../api/reservations';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -20,6 +21,7 @@ export function MyReservationsPage() {
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
+  const confirmCancelRef = useDialog({ open: confirmCancel !== null, onClose: () => setConfirmCancel(null) });
 
   async function load(pageNum: number) {
     setLoading(true);
@@ -84,7 +86,7 @@ export function MyReservationsPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="p-4 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+        <div role="alert" className="p-4 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
           {error}
         </div>
       </div>
@@ -101,8 +103,8 @@ export function MyReservationsPage() {
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <table className="w-full">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Room</th>
@@ -134,7 +136,7 @@ export function MyReservationsPage() {
                         <button
                           onClick={() => setConfirmCancel(r.id)}
                           disabled={cancelling === r.id}
-                          className="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
+                          className="text-sm text-red-600 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded disabled:opacity-50"
                         >
                           {cancelling === r.id ? 'Cancelling...' : 'Cancel'}
                         </button>
@@ -155,7 +157,7 @@ export function MyReservationsPage() {
               <button
                 onClick={() => load(page - 1)}
                 disabled={page === 0}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
               >
                 Previous
               </button>
@@ -165,7 +167,7 @@ export function MyReservationsPage() {
               <button
                 onClick={() => load(page + 1)}
                 disabled={page >= totalPages - 1}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
               >
                 Next
               </button>
@@ -177,8 +179,15 @@ export function MyReservationsPage() {
       {/* Confirm Cancel Dialog */}
       {confirmCancel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Cancel Reservation</h3>
+          <div
+            ref={confirmCancelRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancel-dialog-title"
+            className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 focus:outline-none"
+          >
+            <h3 id="cancel-dialog-title" className="text-lg font-semibold text-gray-900 mb-2">Cancel Reservation</h3>
             <p className="text-sm text-gray-600 mb-4">
               Are you sure you want to cancel this reservation? This action cannot be undone.
             </p>

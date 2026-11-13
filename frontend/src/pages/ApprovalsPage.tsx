@@ -1,6 +1,7 @@
 // src/pages/ApprovalsPage.tsx
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/useAuth';
+import { useDialog } from '../hooks/useDialog';
 import { getReservations, approveReservation, rejectReservation, type ReservationResponse } from '../api/reservations';
 import { getRooms, type RoomSummary } from '../api/rooms';
 
@@ -17,6 +18,7 @@ export function ApprovalsPage() {
   const [error, setError] = useState('');
   const [actionId, setActionId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ id: string; type: 'approve' | 'reject' } | null>(null);
+  const confirmActionRef = useDialog({ open: confirmAction !== null, onClose: () => setConfirmAction(null) });
 
   async function load(pageNum: number) {
     setLoading(true);
@@ -111,13 +113,13 @@ export function ApprovalsPage() {
       <h2 className="text-xl font-semibold text-gray-900 mb-6">Reservations</h2>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+        <div role="alert" className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
           {error}
         </div>
       )}
 
       {/* Filters */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-wrap gap-4 mb-6">
         <div>
           <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">
             Status
@@ -161,8 +163,8 @@ export function ApprovalsPage() {
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <table className="w-full">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requester</th>
@@ -204,14 +206,14 @@ export function ApprovalsPage() {
                           <button
                             onClick={() => setConfirmAction({ id: r.id, type: 'approve' })}
                             disabled={actionId === r.id}
-                            className="text-sm text-green-600 hover:text-green-800 disabled:opacity-50"
+                            className="text-sm text-green-600 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded disabled:opacity-50"
                           >
                             {actionId === r.id ? '...' : 'Approve'}
                           </button>
                           <button
                             onClick={() => setConfirmAction({ id: r.id, type: 'reject' })}
                             disabled={actionId === r.id}
-                            className="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
+                            className="text-sm text-red-600 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded disabled:opacity-50"
                           >
                             {actionId === r.id ? '...' : 'Reject'}
                           </button>
@@ -254,8 +256,15 @@ export function ApprovalsPage() {
 
       {confirmAction && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <div
+            ref={confirmActionRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-dialog-title"
+            className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 focus:outline-none"
+          >
+            <h3 id="confirm-dialog-title" className="text-lg font-semibold text-gray-900 mb-2">
               {confirmAction.type === 'approve' ? 'Approve Reservation' : 'Reject Reservation'}
             </h3>
             <p className="text-sm text-gray-600 mb-4">
@@ -264,14 +273,14 @@ export function ApprovalsPage() {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setConfirmAction(null)}
-                className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleAction(confirmAction.id, confirmAction.type)}
                 disabled={actionId === confirmAction.id}
-                className={`px-3 py-2 text-sm text-white rounded-md disabled:opacity-50 ${
+                className={`px-3 py-2 text-sm text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 ${
                   confirmAction.type === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
                 }`}
               >
