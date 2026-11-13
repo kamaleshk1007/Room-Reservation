@@ -21,6 +21,7 @@ export interface UserSummary {
 export async function login(req: LoginRequest): Promise<AuthResponse> {
   const res = await api.post<AuthResponse>('/api/auth/login', req);
   setToken(res.accessToken);
+  if (res.refreshToken) localStorage.setItem('refreshToken', res.refreshToken);
   return res;
 }
 

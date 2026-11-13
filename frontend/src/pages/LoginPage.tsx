@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login, getMe } from '../api/auth';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 
 export function LoginPage() {
   const [portalStaffId, setPortalStaffId] = useState('');

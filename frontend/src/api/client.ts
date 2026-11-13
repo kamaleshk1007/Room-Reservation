@@ -11,9 +11,35 @@ function setToken(token: string): void {
 
 function clearToken(): void {
   localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+let refreshPromise: Promise<string> | null = null;
+
+async function refreshToken(): Promise<string> {
+  if (refreshPromise) return refreshPromise;
+  const rt = localStorage.getItem('refreshToken');
+  if (!rt) throw new Error('No refresh token');
+
+  refreshPromise = fetch(`${API_BASE}/api/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${rt}` },
+  })
+    .then(async (res) => {
+      if (!res.ok) throw new Error('Refresh failed');
+      const data = await res.json();
+      setToken(data.accessToken);
+      if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+      return data.accessToken as string;
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+
+  return refreshPromise;
+}
+
+async function request<T>(path: string, options: RequestInit = {}, retry = true): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -27,6 +53,27 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...options,
     headers,
   });
+
+  if (response.status === 401 && retry) {
+    try {
+      const newToken = await refreshToken();
+      const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
+      const retryResponse = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: retryHeaders,
+      });
+      if (!retryResponse.ok) {
+        const error = await retryResponse.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(error.error || error.message || 'Request failed');
+      }
+      if (retryResponse.status === 204) return undefined as T;
+      return retryResponse.json();
+    } catch {
+      clearToken();
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
+  }
 
   if (response.status === 401) {
     clearToken();

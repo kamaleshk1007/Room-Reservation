@@ -9,12 +9,12 @@ export function RoomsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    setLoading(true);
-    setError('');
+    let cancelled = false;
     getRooms()
-      .then(setRooms)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load rooms'))
-      .finally(() => setLoading(false));
+      .then((data) => { if (!cancelled) setRooms(data); })
+      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load rooms'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const filtered = rooms.filter((r) =>

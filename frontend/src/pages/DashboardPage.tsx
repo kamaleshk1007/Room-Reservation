@@ -1,5 +1,5 @@
 // src/pages/DashboardPage.tsx
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 export function DashboardPage() {

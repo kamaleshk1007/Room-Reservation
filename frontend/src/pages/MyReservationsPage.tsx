@@ -9,6 +9,8 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: 'bg-gray-50 text-gray-600 border-gray-200',
 };
 
+const NOW = Date.now();
+
 export function MyReservationsPage() {
   const [reservations, setReservations] = useState<ReservationResponse[]>([]);
   const [page, setPage] = useState(0);
@@ -36,7 +38,19 @@ export function MyReservationsPage() {
   }
 
   useEffect(() => {
-    load(0);
+    let cancelled = false;
+    getReservations({ page: 0, size: 10, sort: 'startTime,desc' })
+      .then((data) => {
+        if (!cancelled) {
+          setReservations(data.content);
+          setTotalPages(data.totalPages);
+          setTotalElements(data.totalElements);
+          setPage(data.number);
+        }
+      })
+      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load reservations'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   async function handleCancel(id: string) {
@@ -54,7 +68,7 @@ export function MyReservationsPage() {
 
   function canCancel(r: ReservationResponse): boolean {
     if (r.status !== 'PENDING' && r.status !== 'CONFIRMED') return false;
-    return new Date(r.startTime) > new Date();
+    return new Date(r.startTime).getTime() > NOW;
   }
 
   if (loading) {
