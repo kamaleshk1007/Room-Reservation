@@ -1,5 +1,6 @@
 // src/pages/MyReservationsPage.tsx
 import { useEffect, useState } from 'react';
+import { useAuth } from '../auth/useAuth';
 import { getReservations, cancelReservation, type ReservationResponse } from '../api/reservations';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -12,6 +13,7 @@ const STATUS_COLORS: Record<string, string> = {
 const NOW = Date.now();
 
 export function MyReservationsPage() {
+  const { user } = useAuth();
   const [reservations, setReservations] = useState<ReservationResponse[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -68,6 +70,7 @@ export function MyReservationsPage() {
 
   function canCancel(r: ReservationResponse): boolean {
     if (r.status !== 'PENDING' && r.status !== 'CONFIRMED') return false;
+    if (user && r.requestedBy.id !== user.id) return false;
     return new Date(r.startTime).getTime() > NOW;
   }
 

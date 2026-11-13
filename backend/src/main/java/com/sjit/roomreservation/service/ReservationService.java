@@ -39,7 +39,8 @@ public class ReservationService {
         // Pessimistic lock on room row to prevent race conditions
         roomRepository.findByIdForUpdate(reservation.getRoom().getId());
 
-        // Overlap check: PENDING + CONFIRMED (prevent double-booking even with pending requests)
+        // Overlap check: CONFIRMED only (at create time, only confirmed reservations matter;
+        // PENDING reservations are allowed to overlap since they haven't been approved yet)
         if (reservationRepository.existsOverlapByRoom(
                 reservation.getRoom().getId(),
                 reservation.getId(),

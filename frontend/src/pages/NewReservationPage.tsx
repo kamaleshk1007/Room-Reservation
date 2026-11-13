@@ -44,10 +44,15 @@ export function NewReservationPage() {
     setError('');
     setLoading(true);
     try {
+      // Send datetime-local value as-is (append :00 if no seconds)
+      const formatDateTime = (val: string) => {
+        if (val.length === 16) return val + ':00';
+        return val;
+      };
       await createReservation({
         roomId,
-        startTime: new Date(startTime).toISOString().slice(0, 19),
-        endTime: new Date(endTime).toISOString().slice(0, 19),
+        startTime: formatDateTime(startTime),
+        endTime: formatDateTime(endTime),
         purpose: purpose || undefined,
       });
       navigate('/reservations');

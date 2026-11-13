@@ -30,13 +30,15 @@ export async function getMe(): Promise<UserSummary> {
 }
 
 export async function logout(): Promise<void> {
+  const rt = localStorage.getItem('refreshToken');
   try {
-    await api.post('/api/auth/logout');
+    if (rt) {
+      await fetch(`${(import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080')}/api/auth/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${rt}` },
+      });
+    }
   } finally {
     clearToken();
   }
-}
-
-export async function refreshToken(token: string): Promise<AuthResponse> {
-  return api.post<AuthResponse>('/api/auth/refresh', { refreshToken: token });
 }

@@ -144,8 +144,7 @@ VALUES (UUID(), 'Studio Lab', 'SL01', 30, 'STUDIO_LAB', 'ACTIVE', NOW(6), NOW(6)
 INSERT INTO rooms (id, name, code, capacity, room_type, status, created_at, updated_at)
 VALUES (UUID(), 'Innovation Lab', 'IL01', 25, 'INNOVATION_LAB', 'ACTIVE', NOW(6), NOW(6));
 
--- Create a default HOD user (password_hash = bcrypt hash of " HodPassword123" - to be replaced)
--- Password "HODSecret123!" hashed with bcrypt cost 10
+-- Create a default HOD user (password_hash to be replaced with real bcrypt hash)
 INSERT INTO users (id, portal_staff_id, name, email, password_hash, role, is_active, created_at, updated_at)
 VALUES (UUID(), 'hod001', 'Head of Department', 'hod@sjit.ac.in',
         '$2a$10$example.hash.replace.with.real.bcrypt.hash',
