@@ -382,7 +382,7 @@ The frontend is on the `frontend` branch (not yet merged to main). It contains a
 
 ### Current: JWT (Interim)
 ```
-Client (POST /api/auth/login with email + password)
+Client (POST /api/auth/login with portalStaffId + password)
   │
   ▼
 AuthController → AuthenticationManager → UserDetailsServiceImpl
@@ -446,8 +446,8 @@ ReservationController.createReservation()
 |----------|---------|-------------|
 | `SERVER_PORT` | 8080 | HTTP server port |
 | `DB_URL` | jdbc:mysql://localhost:3306/room_reservation | MySQL JDBC URL |
-| `DB_USERNAME` | room_user | MySQL username |
-| `DB_PASSWORD` | room_password | MySQL password |
+| `DB_USERNAME` | (required, no default) | MySQL username |
+| `DB_PASSWORD` | (required, no default) | MySQL password |
 | `JWT_SECRET` | (required, no default) | Base64-encoded 32+ byte secret |
 | `JWT_ACCESS_EXPIRATION_MINUTES` | 30 | Access token TTL in minutes |
 | `JWT_REFRESH_EXPIRATION_DAYS` | 7 | Refresh token TTL in days |

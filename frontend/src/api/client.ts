@@ -55,24 +55,26 @@ async function request<T>(path: string, options: RequestInit = {}, retry = true)
   });
 
   if (response.status === 401 && retry) {
+    let newToken: string;
     try {
-      const newToken = await refreshToken();
-      const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
-      const retryResponse = await fetch(`${API_BASE}${path}`, {
-        ...options,
-        headers: retryHeaders,
-      });
-      if (!retryResponse.ok) {
-        const error = await retryResponse.json().catch(() => ({ error: 'Request failed' }));
-        throw new Error(error.error || error.message || 'Request failed');
-      }
-      if (retryResponse.status === 204) return undefined as T;
-      return retryResponse.json();
+      newToken = await refreshToken();
     } catch {
       clearToken();
       window.location.href = '/login';
       throw new Error('Unauthorized');
     }
+    const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
+    const retryResponse = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: retryHeaders,
+    });
+
+    if (!retryResponse.ok) {
+      const error = await retryResponse.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || error.message || 'Request failed');
+    }
+    if (retryResponse.status === 204) return undefined as T;
+    return retryResponse.json();
   }
 
   if (response.status === 401) {

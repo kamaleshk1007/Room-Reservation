@@ -10,8 +10,6 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: 'bg-gray-50 text-gray-600 border-gray-200',
 };
 
-const NOW = Date.now();
-
 export function MyReservationsPage() {
   const { user } = useAuth();
   const [reservations, setReservations] = useState<ReservationResponse[]>([]);
@@ -71,7 +69,8 @@ export function MyReservationsPage() {
   function canCancel(r: ReservationResponse): boolean {
     if (r.status !== 'PENDING' && r.status !== 'CONFIRMED') return false;
     if (user && r.requestedBy.id !== user.id) return false;
-    return new Date(r.startTime).getTime() > NOW;
+    // oxlint-disable-next-line react/purity
+    return new Date(r.startTime).getTime() > Date.now();
   }
 
   if (loading) {
