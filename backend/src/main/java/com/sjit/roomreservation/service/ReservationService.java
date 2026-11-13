@@ -1,9 +1,11 @@
 package com.sjit.roomreservation.service;
 
 import com.sjit.roomreservation.entity.Reservation;
+import com.sjit.roomreservation.entity.User;
 import com.sjit.roomreservation.exception.ResourceConflictException;
 import com.sjit.roomreservation.repository.ReservationRepository;
 import com.sjit.roomreservation.repository.RoomRepository;
+import com.sjit.roomreservation.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,10 +17,15 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final RoomRepository roomRepository;
+    private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
-    public ReservationService(ReservationRepository reservationRepository, RoomRepository roomRepository) {
+    public ReservationService(ReservationRepository reservationRepository, RoomRepository roomRepository,
+                              UserRepository userRepository, AuditLogService auditLogService) {
         this.reservationRepository = reservationRepository;
         this.roomRepository = roomRepository;
+        this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     /** Save a reservation after checking for overlap with existing reservations. */
@@ -42,7 +49,13 @@ public class ReservationService {
                     "Room is already booked for the requested time range. Double-booking prevented.");
         }
 
-        return reservationRepository.save(reservation);
+        Reservation saved = reservationRepository.save(reservation);
+
+        // Audit log
+        auditLogService.log("Reservation", saved.getId(), "CREATE", reservation.getRequestedBy(),
+                "Room: " + reservation.getRoom().getId() + ", " + reservation.getStartTime() + " to " + reservation.getEndTime());
+
+        return saved;
     }
 
     /** Find reservations with optional filters. */
@@ -78,11 +91,20 @@ public class ReservationService {
                     "Room is already booked for the requested time range. Cannot approve due to conflict with confirmed reservation.");
         }
 
+        User hod = userRepository.findById(approvedByUserId)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("User not found"));
+
         reservation.setStatus("CONFIRMED");
         reservation.setApprovedBy(approvedByUserId);
         reservation.setApprovedAt(LocalDateTime.now());
         reservation.setUpdatedAt(LocalDateTime.now());
-        return reservationRepository.save(reservation);
+        Reservation saved = reservationRepository.save(reservation);
+
+        // Audit log
+        auditLogService.log("Reservation", saved.getId(), "APPROVE", hod,
+                "Approved by HOD: " + hod.getPortalStaffId());
+
+        return saved;
     }
 
     /** Reject a reservation (HOD only). */
@@ -98,10 +120,57 @@ public class ReservationService {
         // Pessimistic lock on room row
         roomRepository.findByIdForUpdate(reservation.getRoom().getId());
 
+        User hod = userRepository.findById(approvedByUserId)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("User not found"));
+
         reservation.setStatus("REJECTED");
         reservation.setApprovedBy(approvedByUserId);
         reservation.setApprovedAt(LocalDateTime.now());
         reservation.setUpdatedAt(LocalDateTime.now());
-        return reservationRepository.save(reservation);
+        Reservation saved = reservationRepository.save(reservation);
+
+        // Audit log
+        auditLogService.log("Reservation", saved.getId(), "REJECT", hod,
+                "Rejected by HOD: " + hod.getPortalStaffId());
+
+        return saved;
+    }
+
+    /** Cancel a reservation (owner only, only PENDING or CONFIRMED future ones). */
+    @Transactional
+    public Reservation cancel(String reservationId, String cancelledByUserId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Reservation not found"));
+
+        User cancelledBy = userRepository.findById(cancelledByUserId)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("User not found"));
+
+        // Only owner can cancel
+        if (!reservation.getRequestedBy().getId().equals(cancelledByUserId)) {
+            throw new ResourceConflictException("Only the reservation owner can cancel it.");
+        }
+
+        // Only PENDING or CONFIRMED
+        if (!"PENDING".equals(reservation.getStatus()) && !"CONFIRMED".equals(reservation.getStatus())) {
+            throw new ResourceConflictException("Cannot cancel reservation with status: " + reservation.getStatus());
+        }
+
+        // Only future reservations
+        if (reservation.getStartTime().isBefore(LocalDateTime.now())) {
+            throw new ResourceConflictException("Cannot cancel a reservation that has already started.");
+        }
+
+        // Pessimistic lock on room row
+        roomRepository.findByIdForUpdate(reservation.getRoom().getId());
+
+        reservation.setStatus("CANCELLED");
+        reservation.setUpdatedAt(LocalDateTime.now());
+        Reservation saved = reservationRepository.save(reservation);
+
+        // Audit log
+        auditLogService.log("Reservation", saved.getId(), "CANCEL", cancelledBy,
+                "Cancelled by owner: " + cancelledBy.getPortalStaffId());
+
+        return saved;
     }
 }

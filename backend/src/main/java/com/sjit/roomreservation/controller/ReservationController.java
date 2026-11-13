@@ -12,6 +12,10 @@ import com.sjit.roomreservation.repository.UserRepository;
 import com.sjit.roomreservation.service.ReservationService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -46,7 +50,6 @@ public class ReservationController {
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Room not found"));
 
-        // Get requesting user from authenticated JWT principal
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String portalStaffId = authentication.getName();
         User requestedBy = userRepository.findByPortalStaffId(portalStaffId)
@@ -64,11 +67,14 @@ public class ReservationController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ReservationResponse>> getReservations(
+    public ResponseEntity<?> getReservations(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String roomId,
             @RequestParam(required = false) String from,
-            @RequestParam(required = false) String to) {
+            @RequestParam(required = false) String to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "startTime,desc") String sort) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String portalStaffId = authentication.getName();
@@ -80,10 +86,8 @@ public class ReservationController {
 
         List<Reservation> reservations;
 
-        // Staff sees only their own reservations; HOD sees all
         if ("STAFF".equals(currentUser.getRole())) {
             reservations = reservationService.findByRequester(currentUser.getId());
-            // Apply additional filters
             if (status != null) {
                 reservations = reservations.stream().filter(r -> status.equals(r.getStatus())).toList();
             }
@@ -100,10 +104,36 @@ public class ReservationController {
             reservations = reservationService.findWithFilters(status, roomId, fromDate, toDate);
         }
 
+        // Sorting
+        String[] sortParts = sort.split(",");
+        String sortField = sortParts[0];
+        Sort.Direction direction = sortParts.length > 1 && sortParts[1].equalsIgnoreCase("asc")
+                ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        // Default sort by startTime desc (newest first)
         List<ReservationResponse> responses = reservations.stream()
                 .map(this::toResponse)
+                .sorted((a, b) -> {
+                    int cmp = 0;
+                    switch (sortField) {
+                        case "startTime" -> cmp = a.getStartTime().compareTo(b.getStartTime());
+                        case "endTime" -> cmp = a.getEndTime().compareTo(b.getEndTime());
+                        case "createdAt" -> cmp = a.getCreatedAt().compareTo(b.getCreatedAt());
+                        case "status" -> cmp = a.getStatus().compareTo(b.getStatus());
+                        default -> cmp = a.getStartTime().compareTo(b.getStartTime());
+                    }
+                    return direction == Sort.Direction.ASC ? cmp : -cmp;
+                })
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(responses);
+
+        // Pagination
+        int start = page * size;
+        int end = Math.min(start + size, responses.size());
+        List<ReservationResponse> pageContent = (start < responses.size())
+                ? responses.subList(start, end) : List.of();
+
+        Page<ReservationResponse> pageResult = new PageImpl<>(pageContent, PageRequest.of(page, size), responses.size());
+        return ResponseEntity.ok(pageResult);
     }
 
     @PatchMapping("/{id}/approve")
@@ -128,6 +158,17 @@ public class ReservationController {
 
         Reservation rejected = reservationService.reject(id, hod.getId());
         return ResponseEntity.ok(toResponse(rejected));
+    }
+
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<ReservationResponse> cancelReservation(@PathVariable String id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String portalStaffId = authentication.getName();
+        User currentUser = userRepository.findByPortalStaffId(portalStaffId)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("User not found"));
+
+        Reservation cancelled = reservationService.cancel(id, currentUser.getId());
+        return ResponseEntity.ok(toResponse(cancelled));
     }
 
     private ReservationResponse toResponse(Reservation r) {
