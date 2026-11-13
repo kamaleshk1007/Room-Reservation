@@ -151,7 +151,7 @@ export function DashboardPage() {
           <h2 className="text-xl font-semibold text-gray-900">Dashboard</h2>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 flex items-center justify-between">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm text-gray-500">Pending approvals</p>
             <p className="text-3xl font-semibold text-gray-900 mt-2">{pendingCount}</p>
@@ -172,8 +172,8 @@ export function DashboardPage() {
             <p className="text-gray-500">No confirmed reservations for today yet.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-8">
-            <table className="w-full">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto mb-8">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requester</th>
