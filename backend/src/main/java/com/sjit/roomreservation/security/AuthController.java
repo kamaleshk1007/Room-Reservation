@@ -56,7 +56,7 @@ public class AuthController {
     @Autowired
     private UserDetailsService userDetailsService;
 
-    @Value("${app.portal.cookieSecret}")
+    @Value("${app.portal.cookieSecret:}")
     private String portalCookieSecret;
 
     private SecretKey portalKey;
@@ -152,6 +152,10 @@ public class AuthController {
     @PostMapping("/portal-sso")
     public ResponseEntity<?> portalSso(@CookieValue(value = PORTAL_COOKIE_NAME, required = false) String session,
                                        HttpServletResponse response) {
+        if (portalCookieSecret == null || portalCookieSecret.isBlank()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(new AuthError("Portal SSO is not configured on this server."));
+        }
         if (session == null || session.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new AuthError("Portal session is missing. Sign in at the college portal first."));

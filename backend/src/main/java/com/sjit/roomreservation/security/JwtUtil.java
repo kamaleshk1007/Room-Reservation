@@ -19,13 +19,16 @@ public class JwtUtil {
     private final long jwtAccessExpirationMinutes;
     private final long jwtRefreshExpirationDays;
     private final SecretKey key;
+    private final boolean cookieSecure;
 
     public JwtUtil(@Value("${app.jwt.secret}") String jwtSecret,
                    @Value("${app.jwt.access-token-expiration-minutes}") long jwtAccessExpirationMinutes,
-                   @Value("${app.jwt.refresh-token-expiration-days}") long jwtRefreshExpirationDays) {
+                   @Value("${app.jwt.refresh-token-expiration-days}") long jwtRefreshExpirationDays,
+                   @Value("${app.cookie.secure:false}") boolean cookieSecure) {
         this.jwtSecret = jwtSecret;
         this.jwtAccessExpirationMinutes = jwtAccessExpirationMinutes;
         this.jwtRefreshExpirationDays = jwtRefreshExpirationDays;
+        this.cookieSecure = cookieSecure;
 
         // jjwt 0.12.x: requires 32+ bytes (256 bits) base64-encoded secret
         byte[] secretBytes = Decoders.BASE64.decode(jwtSecret);
@@ -110,15 +113,22 @@ public class JwtUtil {
 
     /** Set refresh token as http-only cookie */
     public void setRefreshTokenCookie(HttpServletResponse response, String token) {
-        response.setHeader("Set-Cookie",
-                "refresh_token=" + token +
-                        "; Path=/; HttpOnly; Secure; SameSite=Strict" +
-                        "; Max-Age=" + (jwtRefreshExpirationDays * 24 * 60 * 60));
+        StringBuilder cookie = new StringBuilder("refresh_token=")
+                .append(token)
+                .append("; Path=/; HttpOnly; SameSite=Strict")
+                .append("; Max-Age=").append(jwtRefreshExpirationDays * 24 * 60 * 60);
+        if (cookieSecure) {
+            cookie.append("; Secure");
+        }
+        response.setHeader("Set-Cookie", cookie.toString());
     }
 
     /** Clear refresh token cookie */
     public void clearRefreshTokenCookie(HttpServletResponse response) {
-        response.setHeader("Set-Cookie",
-                "refresh_token=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0");
+        StringBuilder cookie = new StringBuilder("refresh_token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0");
+        if (cookieSecure) {
+            cookie.append("; Secure");
+        }
+        response.setHeader("Set-Cookie", cookie.toString());
     }
 }
