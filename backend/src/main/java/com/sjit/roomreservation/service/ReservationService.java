@@ -1,6 +1,7 @@
 package com.sjit.roomreservation.service;
 
 import com.sjit.roomreservation.entity.Reservation;
+import com.sjit.roomreservation.entity.Room;
 import com.sjit.roomreservation.entity.User;
 import com.sjit.roomreservation.exception.ResourceConflictException;
 import com.sjit.roomreservation.repository.ReservationRepository;
@@ -59,6 +60,17 @@ public class ReservationService {
         return saved;
     }
 
+    /** Reject bookings on rooms that are not bookable (inactive or non-ACTIVE status). */
+    public void assertRoomBookable(Room room) {
+        if (room == null) {
+            throw new jakarta.persistence.EntityNotFoundException("Room not found");
+        }
+        if (Boolean.FALSE.equals(room.getIsActive()) || !"ACTIVE".equals(room.getStatus())) {
+            throw new ResourceConflictException(
+                    "Room '" + room.getCode() + "' is not available for bookings (room is not active).");
+        }
+    }
+
     /** Find reservations with optional filters. */
     public List<Reservation> findWithFilters(String status, String roomId, LocalDateTime from, LocalDateTime to) {
         return reservationRepository.findWithFilters(status, roomId, from, to);
@@ -74,6 +86,9 @@ public class ReservationService {
     public Reservation approve(String reservationId, String approvedByUserId) {
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Reservation not found"));
+
+        // Reject bookings on soft-deleted or non-ACTIVE rooms
+        assertRoomBookable(reservation.getRoom());
 
         if (!"PENDING".equals(reservation.getStatus())) {
             throw new ResourceConflictException("Reservation is not PENDING, cannot approve. Current status: " + reservation.getStatus());

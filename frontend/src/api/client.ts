@@ -1,6 +1,18 @@
 // src/api/client.ts
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
+export class ApiError extends Error {
+  readonly status: number;
+  readonly details?: Record<string, string>;
+
+  constructor(message: string, status: number, details?: Record<string, string>) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.details = details;
+  }
+}
+
 function getToken(): string | null {
   return localStorage.getItem('accessToken');
 }
@@ -70,8 +82,8 @@ async function request<T>(path: string, options: RequestInit = {}, retry = true)
     });
 
     if (!retryResponse.ok) {
-      const error = await retryResponse.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(error.error || error.message || 'Request failed');
+      const body = await retryResponse.json().catch(() => ({ error: 'Request failed' }));
+      throw new ApiError(body.error || body.message || 'Request failed', retryResponse.status, body.details);
     }
     if (retryResponse.status === 204) return undefined as T;
     return retryResponse.json();
@@ -84,8 +96,8 @@ async function request<T>(path: string, options: RequestInit = {}, retry = true)
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(error.error || error.message || 'Request failed');
+    const body = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new ApiError(body.error || body.message || 'Request failed', response.status, body.details);
   }
 
   if (response.status === 204) {
@@ -98,7 +110,9 @@ async function request<T>(path: string, options: RequestInit = {}, retry = true)
 export const api = {
   get: <T>(path: string) => request<T>(path, { method: 'GET' }),
   post: <T>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+  put: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
+  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };
 
 export { getToken, setToken, clearToken };

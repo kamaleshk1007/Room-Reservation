@@ -48,6 +48,11 @@ export function Layout() {
               Approvals
             </Link>
           )}
+          {user.role === 'HOD' && (
+            <Link to="/rooms/manage" className="py-3 text-sm font-medium text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+              Manage Rooms
+            </Link>
+          )}
         </div>
       </nav>
       <main>

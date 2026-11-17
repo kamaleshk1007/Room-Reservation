@@ -50,6 +50,9 @@ public class ReservationController {
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Room not found"));
 
+        // Reject bookings on soft-deleted or non-ACTIVE rooms
+        reservationService.assertRoomBookable(room);
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String portalStaffId = authentication.getName();
         User requestedBy = userRepository.findByPortalStaffId(portalStaffId)

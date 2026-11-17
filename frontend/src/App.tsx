@@ -10,6 +10,7 @@ import { RoomsPage } from './pages/RoomsPage';
 import { NewReservationPage } from './pages/NewReservationPage';
 import { MyReservationsPage } from './pages/MyReservationsPage';
 import { ApprovalsPage } from './pages/ApprovalsPage';
+import { ManageRoomsPage } from './pages/ManageRoomsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
               <Route element={<Layout />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/rooms" element={<RoomsPage />} />
+                <Route path="/rooms/manage" element={<ManageRoomsPage />} />
                 <Route path="/reservations" element={<MyReservationsPage />} />
                 <Route path="/reservations/new" element={<NewReservationPage />} />
                 <Route path="/approvals" element={<ApprovalsPage />} />
