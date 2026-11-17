@@ -16,6 +16,9 @@ public interface RoomRepository extends JpaRepository<Room, String> {
     /** Find room by code (e.g., "AV01", "AU01"). */
     Optional<Room> findByCode(String code);
 
+    /** Check whether a room with the given code exists. */
+    boolean existsByCode(String code);
+
     /** Find room by ID with pessimistic write lock (SELECT FOR UPDATE). */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM Room r WHERE r.id = :id")

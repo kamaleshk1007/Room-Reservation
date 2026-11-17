@@ -71,6 +71,20 @@ public interface ReservationRepository extends JpaRepository<Reservation, String
                                       @Param("from") LocalDateTime from,
                                       @Param("to") LocalDateTime to);
 
+    /** Count future reservations by room and status. */
+    @Query(
+            value = """
+                    SELECT COUNT(r)
+                    FROM Reservation r
+                    WHERE r.room.id = :roomId
+                      AND r.status = :status
+                      AND r.startTime >= :now
+                    """
+    )
+    long countFutureByRoomAndStatus(@Param("roomId") String roomId,
+                                    @Param("status") String status,
+                                    @Param("now") LocalDateTime now);
+
     /** Find reservations by requestedBy user. */
     List<Reservation> findByRequestedBy_Id(String userId);
 }

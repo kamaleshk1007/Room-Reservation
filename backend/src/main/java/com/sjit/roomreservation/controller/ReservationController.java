@@ -180,7 +180,8 @@ public class ReservationController {
                 r.getRoom().getCode(),
                 r.getRoom().getCapacity(),
                 r.getRoom().getRoomType(),
-                r.getRoom().getStatus()
+                r.getRoom().getStatus(),
+                r.getRoom().getLocation()
         ));
         resp.setRequestedBy(new UserSummary(
                 r.getRequestedBy().getId(),

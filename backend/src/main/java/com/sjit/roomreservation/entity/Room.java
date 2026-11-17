@@ -31,6 +31,12 @@ public class Room {
     @Column(name = "status", nullable = false, length = 50)
     private String status;
 
+    @Column(name = "location", length = 255)
+    private String location;
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive;
+
     @Column(name = "created_at", nullable = false, columnDefinition = "DATETIME(6)")
     private LocalDateTime createdAt;
 
@@ -40,16 +46,19 @@ public class Room {
     // Default constructor (required by JPA)
     public Room() {
         this.id = UUID.randomUUID().toString();
+        this.isActive = true;
     }
 
     // Full constructor
-    public Room(String name, String code, Integer capacity, String roomType, String status) {
+    public Room(String name, String code, Integer capacity, String roomType, String status, String location) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
         this.code = code;
         this.capacity = capacity;
         this.roomType = roomType;
         this.status = status;
+        this.location = location;
+        this.isActive = true;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
@@ -72,6 +81,12 @@ public class Room {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
+
+    public Boolean getIsActive() { return isActive; }
+    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

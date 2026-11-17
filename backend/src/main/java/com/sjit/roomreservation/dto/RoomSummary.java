@@ -12,16 +12,18 @@ public class RoomSummary {
     private Integer capacity;
     private String roomType;
     private String status;
+    private String location;
 
     public RoomSummary() {}
 
-    public RoomSummary(String id, String name, String code, Integer capacity, String roomType, String status) {
+    public RoomSummary(String id, String name, String code, Integer capacity, String roomType, String status, String location) {
         this.id = id;
         this.name = name;
         this.code = code;
         this.capacity = capacity;
         this.roomType = roomType;
         this.status = status;
+        this.location = location;
     }
 
     public String getId() { return id; }
@@ -41,4 +43,7 @@ public class RoomSummary {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
 }
