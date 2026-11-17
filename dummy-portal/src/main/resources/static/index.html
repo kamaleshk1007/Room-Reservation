@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>College Portal</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f3f4f6;
+      font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+      color: #111827;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 32px;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    p { color: #4b5563; font-size: 14px; margin: 4px 0 20px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    input:focus { outline: 2px solid #2563eb; border-color: transparent; }
+    button {
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 16px;
+      background: #1d4ed8;
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #1e40af; }
+    button.secondary {
+      background: #fff;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+    .error {
+      margin-top: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: #b91c1c;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+    }
+    .welcome-name { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+    .hint { color: #6b7280; font-size: 12px; margin-top: 16px; }
+    a { color: #1d4ed8; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>College Portal</h1>
+    <p>Sign in with your staff ID and password</p>
+
+    <form id="login-form">
+      <label for="staffId">Staff ID</label>
+      <input id="staffId" name="staffId" autocomplete="username" required />
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required />
+      <button type="submit">Sign in</button>
+      <div id="error" class="error" role="alert" style="display: none;"></div>
+    </form>
+
+    <section id="welcome" style="display: none;">
+      <h1 class="welcome-name" id="welcome-name"></h1>
+      <p>You are signed in to the college portal.</p>
+      <a href="http://localhost:5173">
+        <button type="button">Room Reserve</button>
+      </a>
+      <button type="button" id="sign-out" class="secondary">Sign out</button>
+    </section>
+
+    <p class="hint">Dummy portal for local SSO development only.</p>
+  </main>
+
+  <script>
+    const loginForm = document.getElementById('login-form');
+    const welcome = document.getElementById('welcome');
+    const errorBox = document.getElementById('error');
+
+    function showError(text) {
+      errorBox.textContent = text;
+      errorBox.style.display = 'block';
+    }
+
+    function showWelcome(name) {
+      loginForm.style.display = 'none';
+      document.getElementById('welcome-name').textContent = 'Welcome, ' + name;
+      welcome.style.display = 'block';
+    }
+
+    async function refreshSession() {
+      try {
+        const res = await fetch('/portal/me', { credentials: 'include' });
+        if (!res.ok) return;
+        const user = await res.json();
+        showWelcome(user.name);
+      } catch (e) {
+        // Not signed in; show the login form
+      }
+    }
+
+    loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorBox.style.display = 'none';
+      const staffId = document.getElementById('staffId').value.trim();
+      const password = document.getElementById('password').value;
+      const res = await fetch('/portal/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ staffId, password }),
+      });
+      if (res.ok) {
+        const user = await res.json();
+        showWelcome(user.name);
+      } else {
+        const body = await res.json().catch(() => null);
+        showError(body && body.error ? body.error : 'Sign in failed. Try again.');
+      }
+    });
+
+    document.getElementById('sign-out').addEventListener('click', async () => {
+      await fetch('/portal/logout', { method: 'POST', credentials: 'include' });
+      loginForm.style.display = 'block';
+      welcome.style.display = 'none';
+      document.getElementById('staffId').value = '';
+      document.getElementById('password').value = '';
+    });
+
+    refreshSession();
+  </script>
+</body>
+</html>

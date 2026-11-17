@@ -1,6 +1,6 @@
 // src/auth/AuthContext.tsx
 import { useState, useEffect, type ReactNode } from 'react';
-import { getMe, logout as apiLogout } from '../api/auth';
+import { getMe, logout as apiLogout, ssoPortal } from '../api/auth';
 import type { UserSummary } from '../api/auth';
 import { AuthContext } from './AuthContextDef';
 
@@ -10,10 +10,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
-    if (!token) return;
-    getMe()
-      .then(setUser)
-      .catch(() => setUser(null))
+    if (token) {
+      getMe()
+        .then(setUser)
+        .catch(() => setUser(null))
+        .finally(() => setLoading(false));
+      return;
+    }
+    // No stored session: try the portal cookie before showing the login page
+    ssoPortal()
+      .then((user) => setUser(user))
       .finally(() => setLoading(false));
   }, []);
 

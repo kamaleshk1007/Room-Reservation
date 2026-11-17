@@ -29,6 +29,25 @@ export async function getMe(): Promise<UserSummary> {
   return api.get<UserSummary>('/api/auth/me');
 }
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
+export async function ssoPortal(): Promise<UserSummary | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/portal-sso`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    setToken(data.accessToken);
+    if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+    return await getMe();
+  } catch {
+    return null;
+  }
+}
+
 export async function logout(): Promise<void> {
   const rt = localStorage.getItem('refreshToken');
   try {
