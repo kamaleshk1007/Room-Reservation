@@ -21,10 +21,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, String
     /** Find pending reservations for a room. */
     // Optional<List<Reservation>> findByRoomIdAndStatus(String roomId, String status);
 
-    /** Check if a time range overlaps any CONFIRMED reservation for the given room (create time). */
+    /** Count overlapping time ranges any CONFIRMED reservation for the given room (create time). */
     @Query(
             value = """
-                    SELECT COUNT(r) > 0
+                    SELECT COUNT(r)
                     FROM Reservation r
                     WHERE r.room.id = :roomId
                       AND r.status = 'CONFIRMED'
@@ -33,15 +33,15 @@ public interface ReservationRepository extends JpaRepository<Reservation, String
                       AND r.endTime > :startTime
                     """
     )
-    boolean existsOverlapByRoom(@Param("roomId") String roomId,
-                                @Param("excludeId") String excludeId,
-                                @Param("startTime") LocalDateTime startTime,
-                                @Param("endTime") LocalDateTime endTime);
+    long countOverlapByRoom(@Param("roomId") String roomId,
+                            @Param("excludeId") String excludeId,
+                            @Param("startTime") LocalDateTime startTime,
+                            @Param("endTime") LocalDateTime endTime);
 
-    /** Check if a time range overlaps any CONFIRMED reservation for the given room (approve time). */
+    /** Count overlapping time ranges any CONFIRMED reservation for the given room (approve time). */
     @Query(
             value = """
-                    SELECT COUNT(r) > 0
+                    SELECT COUNT(r)
                     FROM Reservation r
                     WHERE r.room.id = :roomId
                       AND r.status = 'CONFIRMED'
@@ -50,10 +50,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, String
                       AND r.endTime > :startTime
                     """
     )
-    boolean existsOverlapConfirmedByRoom(@Param("roomId") String roomId,
-                                         @Param("excludeId") String excludeId,
-                                         @Param("startTime") LocalDateTime startTime,
-                                         @Param("endTime") LocalDateTime endTime);
+    long countOverlapConfirmedByRoom(@Param("roomId") String roomId,
+                                     @Param("excludeId") String excludeId,
+                                     @Param("startTime") LocalDateTime startTime,
+                                     @Param("endTime") LocalDateTime endTime);
 
     /** Find reservations with optional filters. */
     @Query(

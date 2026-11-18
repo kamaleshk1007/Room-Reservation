@@ -42,11 +42,11 @@ public class ReservationService {
 
         // Overlap check: CONFIRMED only (at create time, only confirmed reservations matter;
         // PENDING reservations are allowed to overlap since they haven't been approved yet)
-        if (reservationRepository.existsOverlapByRoom(
+        if (reservationRepository.countOverlapByRoom(
                 reservation.getRoom().getId(),
                 reservation.getId(),
                 reservation.getStartTime(),
-                reservation.getEndTime())) {
+                reservation.getEndTime()) > 0) {
             throw new ResourceConflictException(
                     "Room is already booked for the requested time range. Double-booking prevented.");
         }
@@ -98,11 +98,11 @@ public class ReservationService {
         roomRepository.findByIdForUpdate(reservation.getRoom().getId());
 
         // Overlap check: CONFIRMED only (at approve time, only confirmed reservations matter)
-        if (reservationRepository.existsOverlapConfirmedByRoom(
+        if (reservationRepository.countOverlapConfirmedByRoom(
                 reservation.getRoom().getId(),
                 reservation.getId(),
                 reservation.getStartTime(),
-                reservation.getEndTime())) {
+                reservation.getEndTime()) > 0) {
             throw new ResourceConflictException(
                     "Room is already booked for the requested time range. Cannot approve due to conflict with confirmed reservation.");
         }
