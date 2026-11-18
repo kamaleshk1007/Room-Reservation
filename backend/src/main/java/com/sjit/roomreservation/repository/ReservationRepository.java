@@ -24,7 +24,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, String
     /** Count overlapping time ranges any CONFIRMED reservation for the given room (create time). */
     @Query(
             value = """
-                    SELECT COUNT(r)
+                    SELECT COUNT(r.id)
                     FROM Reservation r
                     WHERE r.room.id = :roomId
                       AND r.status = 'CONFIRMED'
@@ -41,7 +41,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, String
     /** Count overlapping time ranges any CONFIRMED reservation for the given room (approve time). */
     @Query(
             value = """
-                    SELECT COUNT(r)
+                    SELECT COUNT(r.id)
                     FROM Reservation r
                     WHERE r.room.id = :roomId
                       AND r.status = 'CONFIRMED'
@@ -74,7 +74,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, String
     /** Count future reservations by room and status. */
     @Query(
             value = """
-                    SELECT COUNT(r)
+                    SELECT COUNT(r.id)
                     FROM Reservation r
                     WHERE r.room.id = :roomId
                       AND r.status = :status
