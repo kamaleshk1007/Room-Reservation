@@ -17,12 +17,14 @@ an idle period can take about 50 seconds.
 - New Reservation page with a college-period slot picker (multi-select consecutive
   periods, or a custom time range) or a full custom time range, validated against
   confirmed bookings
-- View own reservations (paginated), see status, cancel their own pending/confirmed
+- View own reservations (paginated lists in the UI with server-side filtering), see
+  status, cancel their own pending/confirmed
   future reservations
 - Dashboard with own pending/confirmed counts and the next upcoming reservations
 
 ### HOD
-- Approvals queue with status/room filtering and real pagination
+- Approvals queue with status/room filtering; paginated lists in the UI with
+  server-side filtering
 - Approve or reject reservations; `approved_by` and `approved_at` are recorded and
   an audit log entry is written per action
 - Double-booking protection is enforced at both creation and approval time
@@ -45,7 +47,7 @@ an idle period can take about 50 seconds.
 | Backend | Spring Boot, Java 21 |
 | Database | MySQL (TiDB Cloud in production) |
 | Migrations | Flyway |
-| Auth | JWT access tokens; refresh token in an HttpOnly cookie; bcrypt hashing |
+| Auth | JWT with refresh tokens sent as Bearer to `/api/auth/refresh` and `/api/auth/logout`; bcrypt hashing |
 
 ## Architecture
 
@@ -96,13 +98,15 @@ See `DEPLOY.md` for the TiDB/Render/Cloudflare deployment guide.
 
 ## Repository layout
 
-- `backend/` — Spring Boot API and Flyway migrations
-- `frontend/` — React + Vite + Tailwind app
-- `dummy-portal/` — stand-in for the college portal used to test portal-cookie SSO
-- `scripts/` — local utilities (e.g. make-user-sql.cmd for inserting a real user with a real bcrypt hash)
+- `backend/` - Spring Boot API and Flyway migrations
+- `frontend/` - React + Vite + Tailwind app
+- `dummy-portal/` - stand-in for the college portal used to test portal-cookie SSO
+- `scripts/` - local utilities (e.g. make-user-sql.cmd for inserting a real user with a real bcrypt hash)
 
 ## Notes
 
+- Portal SSO works only when the portal and the app share a domain and the same
+  PORTAL_COOKIE_SECRET; not verified against the real college portal.
 - Room Reserve authenticates users from the college portal's session cookie when
   deployed on the same domain. Local development uses JWT login with refresh tokens
   and a dummy portal.
