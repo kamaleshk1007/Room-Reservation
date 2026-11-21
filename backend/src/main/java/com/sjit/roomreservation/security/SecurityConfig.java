@@ -49,7 +49,7 @@ public class SecurityConfig {
             .httpBasic(httpBasic -> httpBasic.disable())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout", "/api/auth/portal-sso", "/actuator/health").permitAll()
+                .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout", "/api/auth/portal-sso", "/api/auth/portal-handoff", "/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex

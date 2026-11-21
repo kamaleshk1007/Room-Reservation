@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtUtil {
@@ -85,6 +86,7 @@ public class JwtUtil {
     /** Generate an access token (signed HS256 via jjwt 0.12.x, without "Bearer " prefix) */
     public String generateAccessToken(String username) {
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(username)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtAccessExpirationMinutes * 60 * 1000))
@@ -95,6 +97,7 @@ public class JwtUtil {
     /** Generate a refresh token (signed HS256 via jjwt 0.12.x, without "Bearer " prefix) */
     public String generateRefreshToken(String username) {
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(username)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationDays * 24 * 60 * 60 * 1000))

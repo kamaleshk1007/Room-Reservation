@@ -54,6 +54,20 @@
       color: #374151;
       border: 1px solid #d1d5db;
     }
+    a.button-link {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 16px;
+      background: #1d4ed8;
+      color: #fff;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      text-decoration: none;
+    }
+    a.button-link:hover { background: #1e40af; }
     .error {
       margin-top: 12px;
       padding: 10px 12px;
@@ -85,10 +99,11 @@
     <section id="welcome" style="display: none;">
       <h1 class="welcome-name" id="welcome-name"></h1>
       <p>You are signed in to the college portal.</p>
-      <a href="http://localhost:5173">
-        <button type="button">Room Reserve</button>
-      </a>
+      <a id="open-room-reserve" class="button-link" href="http://localhost:5173/" hidden>Open Room Reserve</a>
+      <button type="button" id="open-room-reserve-handoff" class="secondary" hidden>Open Room Reserve (hand-off)</button>
+      <p class="hint" id="handoff-hint" hidden>The hand-off button is for demo use across different domains.</p>
       <button type="button" id="sign-out" class="secondary">Sign out</button>
+      <div id="handoff-error" class="error" role="alert" style="display: none;"></div>
     </section>
 
     <p class="hint">Dummy portal for local SSO development only.</p>
@@ -98,6 +113,46 @@
     const loginForm = document.getElementById('login-form');
     const welcome = document.getElementById('welcome');
     const errorBox = document.getElementById('error');
+    const roomReserveLink = document.getElementById('open-room-reserve');
+    const handoffButton = document.getElementById('open-room-reserve-handoff');
+    const handoffHint = document.getElementById('handoff-hint');
+    const handoffError = document.getElementById('handoff-error');
+    let roomReserveUrl = null;
+
+    async function loadConfig() {
+      try {
+        const res = await fetch('/portal/config');
+        if (!res.ok) return;
+        const config = await res.json();
+        roomReserveUrl = config.roomReserveUrl;
+        roomReserveLink.href = roomReserveUrl + '/';
+        roomReserveLink.hidden = false;
+        handoffButton.hidden = false;
+        handoffHint.hidden = false;
+      } catch (e) {
+        // Leave the Room Reserve controls hidden when the portal config is unavailable.
+      }
+    }
+
+    async function openWithHandoff() {
+      handoffError.style.display = 'none';
+      handoffButton.disabled = true;
+      try {
+        const res = await fetch('/portal/handoff', { method: 'POST', credentials: 'include' });
+        const body = await res.json().catch(() => null);
+        if (!res.ok) {
+          handoffError.textContent = body && body.error ? body.error : 'Hand-off failed. Sign in again.';
+          handoffError.style.display = 'block';
+          return;
+        }
+        window.location.href = roomReserveUrl + '/sso#token=' + encodeURIComponent(body.token);
+      } catch (e) {
+        handoffError.textContent = 'Hand-off failed. Check the portal connection.';
+        handoffError.style.display = 'block';
+      } finally {
+        handoffButton.disabled = false;
+      }
+    }
 
     function showError(text) {
       errorBox.textContent = text;
@@ -143,12 +198,19 @@
 
     document.getElementById('sign-out').addEventListener('click', async () => {
       await fetch('/portal/logout', { method: 'POST', credentials: 'include' });
+      if (roomReserveUrl) {
+        window.location.href = roomReserveUrl + '/login?portalLogout=1';
+        return;
+      }
       loginForm.style.display = 'block';
       welcome.style.display = 'none';
       document.getElementById('staffId').value = '';
       document.getElementById('password').value = '';
     });
 
+    handoffButton.addEventListener('click', openWithHandoff);
+
+    loadConfig();
     refreshSession();
   </script>
 </body>

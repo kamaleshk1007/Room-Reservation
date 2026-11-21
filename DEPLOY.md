@@ -62,8 +62,55 @@ Environment variables (names only, set in the Render service):
 | `CORS_ALLOWED_ORIGINS` | Comma-separated list of allowed frontend origins (include the Cloudflare Pages URL) |
 | `COOKIE_SECURE` | `true` in production (HTTPS); `false` for local HTTP |
 | `PORTAL_COOKIE_SECRET` | *(optional)* Base64 secret used to verify the college portal's `PORTAL_SESSION` cookie. If unset, SSO is disabled and `POST /api/auth/portal-sso` returns 503; the app still boots. |
+| `PORTAL_HANDOFF_SECRET` | *(optional)* Base64 secret (32+ bytes) for the 60-second, single-use hand-off token. Must match the portal. If unset, `POST /api/auth/portal-handoff` returns 503. |
 | `PORT` | set by Render, no default (defaults to `8080` locally) |
 | `JAVA_TOOL_OPTIONS` | *(suggested)* `-Xms64m -Xmx256m` |
+
+### Portal cookie SSO (same domain)
+
+`PORTAL_SESSION` only reaches the backend when the college portal and Room Reserve
+share a parent domain. Set `COOKIE_DOMAIN` on the portal to that shared domain
+(for example `.college.edu`) and leave it empty on localhost, where the cookie is
+host-only and ports are ignored. Set `PORTAL_ROOM_RESERVE_URL` on the portal to the
+Room Reserve frontend origin so the "Open Room Reserve" link and the sign-out
+redirect point at the right app. `PORTAL_COOKIE_SECRET` must be the same
+base64-encoded secret on both services; it is read from the environment and never
+stored in the repository. A portal login that Room Reserve does not know returns
+403, and the person stays on the login page.
+
+### Token hand-off (different domains)
+
+The portal also issues a 60-second, single-use token from `POST /portal/handoff`,
+signed with `PORTAL_HANDOFF_SECRET`, with audience `room-reserve`, and opens
+`<room-reserve>/sso#token=<jwt>`. Room Reserve verifies the same secret in
+`POST /api/auth/portal-handoff`. Set the same value on both services. Unset means
+the endpoint returns 503. Used token ids are tracked in memory and reset when the
+backend restarts, which is acceptable for the demo.
+
+`/sso` reads the token from the fragment, removes the fragment from the address bar
+before calling the backend, and performs exactly one request per page load. A second
+load of the same URL fails with "Hand-off token has already been used." A missing
+fragment shows an error instead of a blank page, and every failure offers a link
+back to `/login`.
+
+### Demo run-through (local)
+
+Four processes: MySQL, the portal (`dummy-portal`, default port 8090), the backend
+(`backend`, 8080) and the frontend (`frontend`, 5173) with `pnpm dev`.
+
+Demo 2, cookie SSO on one domain:
+
+1. Open the portal, sign in as a staff user, click "Open Room Reserve".
+2. The browser lands on the Room Reserve dashboard without a second login.
+3. Click "Sign out" in the portal: the portal clears `PORTAL_SESSION` and sends the
+   browser to `/login?portalLogout=1`, which clears the Room Reserve tokens.
+
+Demo 1, token hand-off across domains:
+
+1. Sign in to the portal again, click "Open Room Reserve (hand-off)".
+2. The portal calls `/portal/handoff`, then opens `/sso#token=<jwt>`; Room Reserve
+   exchanges the token and lands on the dashboard.
+3. Reopen the same `/sso` URL: the exchange is rejected as already used.
 
 ### Alternative: WAR on college Tomcat
 
@@ -86,7 +133,7 @@ the Pages origin (scheme + host, e.g. `https://room-reserve.pages.dev`).
 
 `DB_URL` · `DB_USERNAME` · `DB_PASSWORD` · `JWT_SECRET` · `JWT_ACCESS_EXPIRATION_MINUTES` ·
 `JWT_REFRESH_EXPIRATION_DAYS` · `CORS_ALLOWED_ORIGINS` · `COOKIE_SECURE` · `PORTAL_COOKIE_SECRET` ·
-`PORT` · `JAVA_TOOL_OPTIONS`
+`PORTAL_HANDOFF_SECRET` · `PORT` · `JAVA_TOOL_OPTIONS`
 
 No secret has a default in `application.properties`. Known defaults (non-secrets):
 `PORT=8080`, `JWT_ACCESS_EXPIRATION_MINUTES=30`, `JWT_REFRESH_EXPIRATION_DAYS=7`,

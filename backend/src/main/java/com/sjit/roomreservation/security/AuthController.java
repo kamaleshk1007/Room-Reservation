@@ -3,6 +3,8 @@ package com.sjit.roomreservation.security;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.sjit.roomreservation.dto.UserSummary;
+import com.sjit.roomreservation.exception.ReplayedHandoffTokenException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import com.sjit.roomreservation.entity.RefreshToken;
@@ -58,6 +61,9 @@ public class AuthController {
 
     @Value("${app.portal.cookieSecret:}")
     private String portalCookieSecret;
+
+    @Autowired
+    private PortalHandoffVerifier portalHandoffVerifier;
 
     private SecretKey portalKey;
 
@@ -188,6 +194,39 @@ public class AuthController {
         return issueTokens(user, staffId, response);
     }
 
+    /**
+     * Accepts the short-lived token handed over by the portal in the URL fragment.
+     * The token is single use and audience-scoped to Room Reserve.
+     */
+    @PostMapping("/portal-handoff")
+    public ResponseEntity<?> portalHandoff(@Valid @RequestBody PortalHandoffRequest request,
+                                           HttpServletResponse response) {
+        if (!portalHandoffVerifier.isConfigured()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(new AuthError("Portal hand-off is not configured on this server."));
+        }
+
+        String staffId;
+        try {
+            staffId = portalHandoffVerifier.verifyAndConsume(request.getToken());
+        } catch (ReplayedHandoffTokenException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthError("Hand-off token has already been used."));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthError("Invalid or expired hand-off token."));
+        }
+
+        User user = userRepository.findByPortalStaffId(staffId).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new AuthError("Staff ID '" + staffId + "' is not registered in Room Reserve. "
+                            + "Ask the Room Reserve administrator to grant you access."));
+        }
+
+        return issueTokens(user, staffId, response);
+    }
+
     private ResponseEntity<AuthResponse> issueTokens(User user, String staffId, HttpServletResponse response) {
         String accessToken = jwtUtil.generateAccessToken(staffId);
         String refreshToken = jwtUtil.generateRefreshToken(staffId);
@@ -214,6 +253,14 @@ public class AuthController {
             portalKey = Keys.hmacShaKeyFor(secretBytes);
         }
         return portalKey;
+    }
+
+    public static class PortalHandoffRequest {
+        @NotBlank(message = "token is required")
+        private String token;
+
+        public String getToken() { return token; }
+        public void setToken(String token) { this.token = token; }
     }
 
     public static class LoginRequest {
